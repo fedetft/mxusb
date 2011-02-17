@@ -1,0 +1,166 @@
+
+/**
+\mainpage Miosix USB stack
+
+The mxusb library is an USB device stack for the Miosix kernel.
+It is designed using a "descriptor oriented" configuration model. The same way
+the USB host can infer all device information by parsing endpoints, this
+library tries to automagically configure the USB hardware of a microcontroller
+given the descriptors only.<br>
+As a result application developers need only to understand how USB works
+and not how the USB peripheral specific to a microcontroller works.
+
+<h1>List of implemented features</h1>
+- Provides a public API (usb.h) that does not contain implementation details
+  that depend on the underlying USB peripheral.
+- Provides a blocking API (Endpoint::read() and Endpoint::write()) to transfer
+  data through endpoints. If code should be reading from multiple endpoints at
+  the same time it is possible to use multiple Miosix threads.
+- Provides a nonblocking API (Endpoint::IRQread() and Endpoint::IRQwrite())
+  to access endpoints in a nonblocking way. As the function name implies, they
+  can be called only when interrupts are disabled.
+- Provides an event based API (class Callbacks) with callbacks that are called
+  directly from the USB interrupt handler for high speed data transfer. Within
+  those callbacks the nonblocking API can be used to read/write data.
+- Provides an event based API (ep0.h) for handling class/vendor specific
+  requests on endpoint zero.
+- Provides a descriptor validation option (in usb_config.h) that prints debug
+  information while writing the descriptors, and can be disabled once
+  descriptors are correct, to minimize code size.
+- Provides an USB tracer. The USB code has been instrumented with tracepoints
+  that push debug data in a locked queue which is read by a kernel thread and
+  printed out to debug USB code, especially during enumeration. As usual trace
+  code can be disabled in usb_config.h to minimize code size in release builds.
+- It currently supports only the USB device of the stm32 microcontrollers,
+  but as the API does not include implementation details, ports for other
+  microcontrollers are possible.
+
+<h1>List of features not yet implemented</h1>
+- Support for the remote wakeup feature not yet implemented.
+- Support for stalling endpoints and recovering them with host intervention
+  through endpoint zero is not yet implemented. Active endpoints are either
+  VALID or NAK.
+- Support for isochronous endpoints and control endpoints other than endpoint
+  zero not yet implemented.
+- Alternate settings for interfaces not supported.
+- Bulk endpoints are monodirectional. There can't be two bulk endpoints with
+  opposite direction and same endpoint number (example 0x01 and 0x81).
+  Interrupt bidirectional endpoints are fine, though.
+
+\author Terraneo Federico
+*/
+
+/**
+\page "Using the library"
+
+<h2>Examples</h2>
+Examples are in the examples folder. You will find:
+- mxusb_demo.cpp: Simple example with only one endpoint, and associated
+  libusb based PC source code.
+- mxusb_serial.cpp: virtual com port using the standard CDC ACM class.
+
+You might also want to have a look at the testsuite for a more complex example
+involving multiple configurations. 
+
+<h2>Writing descriptors</h2>
+When writing descriptors it is highly recomended to enable endpoint validation
+and trace mode in usb_config.h.
+
+<h2>How to detect when the USB cable is disconnected</h2>
+- If the USB device is <b>bus powered</b>, there is no problem: If the cable is
+  disconnected the device is no longer powered and therefore there is no need
+  to detect cable disconnect. In this case USB suspend/resume events can be
+  unambiguously interpreted, because if the device enters suspend and still
+  has power to process the event, it is surely an USB suspend.
+- If the device is <b>self powered</b> and the 1k5 pullup to D+ is wired in a
+  way that it pulls the D+ line to +3v3 <b>also when</b> the cable is
+  disconnected, then when the cable is disconnected a suspend event will be
+  generated, and when the cable is connected again a resume followed by a reset
+  is generated. Therefore a suspend event can be both caused by a real suspend
+  or a cable disconnect, and the same for resume. This is not too bad, since
+  if the device is self powered, it does not need to enter low power mode.
+  If it is really necessary to differentiate between suspend and cable
+  disconnect, it is possible to wire a gpio to the +5v that come from the USB
+  cable.
+- The STM3210E-Eval, however, uses two transistors to drive the pullup to D+
+  so that the pullup is only connected when the USB cable is connected. This
+  makes it harder to detect USB cable disconnect: when the cable is
+  disconnected, a suspend event immediately followed by a resume event is
+  generated, and when the cable is connected again, a reset event is generated.
+
+<h2>Example trace mode printout for device enumeration</h2>
+<span style="font-family: monospace;">
+++DEV Device RESET<br>
+++DEV Suspend request<br>
+++DEV Resume request<br>
+++DEV Device RESET<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=256 wIndex=0 wLength=64 }<br>
+++IN  endpoint 0 buffer filled with 18 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
+++DEV Device RESET<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x0 bRequest=5 wValue=47 wIndex=0 wLength=0 }<br>
++ EP0 IN irq<br>
+++DEV New device state=ADDRESS<br>
++ DEV Host assigned adress 47<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=256 wIndex=0 wLength=18 }<br>
+++IN  endpoint 0 buffer filled with 18 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=1536 wIndex=0 wLength=10 }<br>
+* EP0 Unsupported descriptor<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=1536 wIndex=0 wLength=10 }<br>
+* EP0 Unsupported descriptor<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=1536 wIndex=0 wLength=10 }<br>
+* EP0 Unsupported descriptor<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=512 wIndex=0 wLength=9 }<br>
+++IN  endpoint 0 buffer filled with 9 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=512 wIndex=0 wLength=9 }<br>
+++IN  endpoint 0 buffer filled with 9 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=768 wIndex=0 wLength=255 }<br>
+++IN  endpoint 0 buffer filled with 4 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=770 wIndex=1033 wLength=255 }<br>
+++IN  endpoint 0 buffer filled with 14 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=769 wIndex=1033 wLength=255 }<br>
+++IN  endpoint 0 buffer filled with 18 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x80 bRequest=6 wValue=771 wIndex=1033 wLength=255 }<br>
+++IN  endpoint 0 buffer filled with 4 bytes<br>
++ EP0 IN irq<br>
++ EP0 OUT irq<br>
++ EP0 IN transaction completed<br>
++ EP0 SETUP irq<br>
+++EP0 Setup={ bmRequestType=0x0 bRequest=9 wValue=1 wIndex=0 wLength=0 }<br>
+++DEV New device state=CONFIGURED<br>
++ EP0 IN irq<br>
++ EP0 OUT transaction completed<br>
+</span>
+*/
