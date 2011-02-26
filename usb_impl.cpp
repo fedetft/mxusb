@@ -191,11 +191,13 @@ void DeviceStateImpl::IRQsetState(USBdevice::State s)
 {
     if(state==s) return; //No real state change
     state=s;
+    #ifdef _MIOSIX
     if(configWaiting!=0 && state==USBdevice::CONFIGURED)
     {
         configWaiting->IRQwakeup();
         configWaiting=0;
     }
+    #endif //_MIOSIX
     Tracer::IRQtrace(Ut::DEVICE_STATE_CHANGE,state);
     Callbacks::IRQgetCallbacks()->IRQstateChanged();
 }
