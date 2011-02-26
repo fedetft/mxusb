@@ -136,12 +136,12 @@ public:
     /**
      * Get a configuration descriptor
      * \param config a valid configuration descriptor number.
-     * Behaviour is undefined if config is not within 0 and bNumConfigrations
+     * Behaviour is undefined if config is not within 1 and bNumConfigrations
      * \return pointer to the configuration descriptor
      */
     static const unsigned char *IRQgetConfigDesc(unsigned char config)
     {
-        return configDesc[config];
+        return configDesc[config-1];
     }
 
 private:

@@ -371,7 +371,7 @@ void DefCtrlPipe::IRQsetConfiguration()
     if(config!=0)
     {
         DeviceStateImpl::IRQsetConfiguration(config);
-        EndpointImpl::IRQconfigureAll(configDesc[config-1]);
+        EndpointImpl::IRQconfigureAll(IRQgetConfigDesc(config));
         DeviceStateImpl::IRQsetState(USBdevice::CONFIGURED);
     } else {
         DeviceStateImpl::IRQsetConfiguration(0);
