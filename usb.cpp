@@ -64,8 +64,8 @@ void USB_LP_CAN1_RX0_IRQHandler()
     asm volatile("bl _ZN5mxusb15USBirqLpHandlerEv");
     restoreContext();
     #else //_MIOSIX
-    asm volatile("bl _ZN5mxusb15USBirqLpHandlerEv");
-    asm volatile("bx lr");
+    asm volatile("ldr r0, =_ZN5mxusb15USBirqLpHandlerEv\n\t"
+                 "bx  r0                               \n\t");
     #endif //_MIOSIX
 }
 
@@ -84,8 +84,8 @@ void USB_HP_CAN1_TX_IRQHandler()
     asm volatile("bl _ZN5mxusb15USBirqHpHandlerEv");
     restoreContext();
     #else //_MIOSIX
-    asm volatile("bl _ZN5mxusb15USBirqHpHandlerEv");
-    asm volatile("bx lr");
+    asm volatile("ldr r0, =_ZN5mxusb15USBirqHpHandlerEv\n\t"
+                 "bx  r0                               \n\t");
     #endif //_MIOSIX
 }
 
