@@ -550,9 +550,14 @@ bool USBdevice::enable(const unsigned char *device,
     USBgpio::init();
     
     //Enable clock to USB peripheral
-    if(SystemFrequency==72000000)
+    #if __CM3_CMSIS_VERSION >= 0x010030 //CMSIS 1.3 changed variable names
+    const int clock=SystemCoreClock;
+    #else //__CM3_CMSIS_VERSION
+    const int clock=SystemFrequency;
+    #endif //__CM3_CMSIS_VERSION
+    if(clock==72000000)
         RCC->CFGR &= ~RCC_CFGR_USBPRE; //Prescaler=1.5 (72MHz/1.5=48MHz)
-    else if(SystemFrequency==48000000)
+    else if(clock==48000000)
         RCC->CFGR |= RCC_CFGR_USBPRE;  //Prescaler=1   (48MHz)
     else {
         //USB can't work with other clock frequencies
