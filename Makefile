@@ -3,6 +3,7 @@
 ## TFT:Terraneo Federico Technlogies
 ## This makefile builds libmxusb.a
 ##
+MAKEFILE_VERSION := 1.01
 include ../miosix/config/Makefile.inc
 
 ## List of all mxusb source files (both .c and .cpp)
@@ -20,10 +21,10 @@ usb_tracer.cpp
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS := $(CXXFLAGS_BASE) -I../miosix -I../miosix/$(ARCH_INC) \
-    -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
-CFLAGS   := $(CFLAGS_BASE)   -I../miosix -I../miosix/$(ARCH_INC) \
-    -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
+CXXFLAGS := $(CXXFLAGS_BASE) -I../miosix -I../miosix/arch/common \
+    -I../miosix/$(ARCH_INC) -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
+CFLAGS   := $(CFLAGS_BASE)   -I../miosix -I../miosix/arch/common \
+    -I../miosix/$(ARCH_INC) -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
 AFLAGS   := $(AFLAGS_BASE)
 
 ## Build libmxusb.a
