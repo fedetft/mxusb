@@ -3,7 +3,7 @@
 ## TFT:Terraneo Federico Technlogies
 ## This makefile builds libmxusb.a
 ##
-MAKEFILE_VERSION := 1.01
+MAKEFILE_VERSION := 1.02
 include ../miosix/config/Makefile.inc
 
 ## List of all mxusb source files (both .c and .cpp)
@@ -26,19 +26,23 @@ CXXFLAGS := $(CXXFLAGS_BASE) -I../miosix -I../miosix/arch/common \
 CFLAGS   := $(CFLAGS_BASE)   -I../miosix -I../miosix/arch/common \
     -I../miosix/$(ARCH_INC) -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
 AFLAGS   := $(AFLAGS_BASE)
+DFLAGS   := -MMD -MP
 
 ## Build libmxusb.a
 all: $(OBJ)
 	$(AR) rcs libmxusb.a $(OBJ)
 
 clean:
-	rm $(OBJ) libmxusb.a
+	rm $(OBJ) libmxusb.a $(OBJ:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)
