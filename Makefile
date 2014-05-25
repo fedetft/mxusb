@@ -1,10 +1,10 @@
 ##
 ## Makefile for mxusb
-## TFT:Terraneo Federico Technlogies
 ## This makefile builds libmxusb.a
 ##
-MAKEFILE_VERSION := 1.02
-include ../miosix/config/Makefile.inc
+MAKEFILE_VERSION := 1.04
+## KPATH and CONFPATH are forwarded by the parent Makefile
+include $(CONFPATH)/config/Makefile.inc
 
 ## List of all mxusb source files (both .c and .cpp)
 ## These files will end up in libmxusb.a
@@ -21,10 +21,12 @@ usb_tracer.cpp
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS := $(CXXFLAGS_BASE) -I../miosix -I../miosix/arch/common \
-    -I../miosix/$(ARCH_INC) -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
-CFLAGS   := $(CFLAGS_BASE)   -I../miosix -I../miosix/arch/common \
-    -I../miosix/$(ARCH_INC) -I../miosix/$(BOARD_INC) -DMXUSB_LIBRARY
+CXXFLAGS := $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC) \
+            -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)     \
+            -I$(KPATH)/$(BOARD_INC) -DMXUSB_LIBRARY
+CFLAGS   := $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC) \
+            -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)     \
+            -I$(KPATH)/$(BOARD_INC) -DMXUSB_LIBRARY
 AFLAGS   := $(AFLAGS_BASE)
 DFLAGS   := -MMD -MP
 

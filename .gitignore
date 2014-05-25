@@ -1,0 +1,5 @@
+*.o
+*.a
+_doc/html/*
+_examples/pc_side/build/*
+_testsuite/pc_side/build/*
