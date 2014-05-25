@@ -28,6 +28,8 @@
 #ifndef USB_CONFIG_H
 #define	USB_CONFIG_H
 
+#define USB_CONFIG_VERSION 100
+
 /**
  * \file usb_config.h
  * This file contains configuration parameters for the mxusb library.

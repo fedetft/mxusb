@@ -27,11 +27,11 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <config/usb_config.h>
 #include "def_ctrl_pipe.h"
 #include "shared_memory.h"
 #include "usb_util.h"
 #include "usb_tracer.h"
-#include "usb_config.h"
 #include "usb_impl.h"
 #include "ep0.h"
 

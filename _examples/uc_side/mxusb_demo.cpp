@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "mxusb/usb.h"
-#include "mxusb/usb_config.h"
+#include <config/usb_config.h>
 #include <cstdio>
 
 using namespace mxusb;

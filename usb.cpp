@@ -29,10 +29,18 @@
 #include "stm32_usb_regs.h"
 #include "shared_memory.h"
 #include "def_ctrl_pipe.h"
-#include "usb_gpio.h"
 #include "usb_tracer.h"
 #include "usb_impl.h"
+#include <config/usb_gpio.h>
+#include <config/usb_config.h>
 #include <algorithm>
+
+#if USB_CONFIG_VERSION != 100
+#error Wrong usb_config.h version. You need to upgrade it.
+#endif
+#if USB_GPIO_VERSION != 100
+#error Wrong usb_gpio.h version. You need to upgrade it.
+#endif
 
 #ifdef _MIOSIX
 #include "interfaces/delays.h"

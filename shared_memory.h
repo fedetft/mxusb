@@ -30,7 +30,7 @@
 #error "If your code depends on a private header, it IS broken."
 #endif //MXUSB_LIBRARY
 
-#include "usb_config.h"
+#include <config/usb_config.h>
 
 #ifndef SHARED_MEMORY_H
 #define	SHARED_MEMORY_H
