@@ -2,7 +2,7 @@
 ## Makefile for mxusb
 ## This makefile builds libmxusb.a
 ##
-MAKEFILE_VERSION := 1.04
+MAKEFILE_VERSION := 1.07
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
@@ -16,6 +16,14 @@ endpoint_reg.cpp                                                           \
 def_ctrl_pipe.cpp                                                          \
 shared_memory.cpp                                                          \
 usb_tracer.cpp
+
+ifeq ("$(VERBOSE)","1")
+Q := 
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
@@ -32,19 +40,23 @@ DFLAGS   := -MMD -MP
 
 ## Build libmxusb.a
 all: $(OBJ)
-	$(AR) rcs libmxusb.a $(OBJ)
+	$(ECHO) "[AR  ] libmxusb.a"
+	$(Q)$(AR) rcs libmxusb.a $(OBJ)
 
 clean:
 	rm $(OBJ) libmxusb.a $(OBJ:.o=.d)
 
 %.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
+	$(ECHO) "[AS  ] $<"
+	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
+	$(ECHO) "[CC  ] $<"
+	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(ECHO) "[CXX ] $<"
+	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
