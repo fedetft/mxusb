@@ -204,27 +204,6 @@ void USBirqLpHandler()
             {
                 USB->endpoint[epNum].IRQclearTxInterruptFlag();
 
-                /*
-                 * Fix for double buffered bulk IN endpoints when only one of
-                 * the two buffer is filled. This does not get rid of sending
-                 * an empty buffer to the host if it reads while only one buffer
-                 * is filled, but at least by setting dataSize to 0 it avoids
-                 * sending the same buffer twice.
-                 * Actually, since the high priority interrupt is enabled,
-                 * this interrupt handler should never be called with a
-                 * double buffered bulk endpoint request and therefore this code
-                 * should not be required, but guess what? It DOES happen...
-                 */
-                if(epi->IRQgetData().type==Descriptor::BULK)
-                {
-                    if(USB->endpoint[epNum].IRQgetDtogTx())
-                    {
-                        USB->endpoint[epNum].IRQsetTxDataSize0(0);
-                    } else {
-                        USB->endpoint[epNum].IRQsetTxDataSize1(0);
-                    }
-                }
-
                 //NOTE: Decrement buffer before the callabck
                 epi->IRQdecBufferCount();
                 callbacks->IRQendpoint(epNum,Endpoint::IN);
@@ -263,25 +242,6 @@ void USBirqHpHandler()
         if(reg & USB_EP0R_CTR_TX)
         {
             USB->endpoint[epNum].IRQclearTxInterruptFlag();
-
-            /*
-             * Fix for double buffered bulk IN endpoints when only one of
-             * the two buffer is filled. This does not get rid of sending
-             * an empty buffer to the host if it reads while unly one buffer
-             * is filled, but at least by setting dataSize to 0 it avoids
-             * sending the same buffer twice.
-             * Note: this code should be guarded by a
-             * if(epi->IRQgetData().type==Descriptor::BULK) to check if the
-             * endpoint is really a BULK endpoint, but is not because the high
-             * priority interrupt is only fired by double buffered bulk
-             * endpoints (hopefully)
-             */
-            if(USB->endpoint[epNum].IRQgetDtogTx())
-            {
-                USB->endpoint[epNum].IRQsetTxDataSize0(0);
-            } else {
-                USB->endpoint[epNum].IRQsetTxDataSize1(0);
-            }
 
             //NOTE: Decrement buffer before the callabck
             epi->IRQdecBufferCount();
@@ -435,7 +395,21 @@ bool Endpoint::IRQwrite(const unsigned char *data, int size, int& written)
         epr.IRQsetTxStatus(EndpointRegister::VALID);
     } else {
         //BULK
-        if(pImpl->IRQgetBufferCount()>=2) return true;//No err, just buffer full
+        /*
+         * Found the long standing issue in this driver. While writing code
+         * which sends data continuously on EP1 BULK, the main would write two
+         * buffers and block (if using the blocking API), and when the PC side
+         * opens the serial port, no data would come through and the
+         * communications stalls before it starts.
+         * After printing the endpoint register, I noticed it switched between
+         * these three state:
+         * NAK, VALID and DTOG=0 SW_BUF=1, VALID and DTOG=0 SW_BUF=0.
+         * Now, table 153 on the stm32 datasheet says that when DTOG==SW_BUF
+         * the endpoint is in nak state.
+         * So, filling two buffers in a row stops everything.
+         * Solution: Force filling only one buffer.
+         */
+        if(pImpl->IRQgetBufferCount()>=1) return true;//No err, just buffer full
         pImpl->IRQincBufferCount();
         if(epr.IRQgetDtogRx()) //Actually, SW_BUF
         {
