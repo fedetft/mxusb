@@ -2,7 +2,7 @@
 ## Makefile for mxusb
 ## This makefile builds libmxusb.a
 ##
-MAKEFILE_VERSION := 1.07
+MAKEFILE_VERSION := 1.08
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
