@@ -2,9 +2,10 @@
 ## Makefile for mxusb
 ## This makefile builds libmxusb.a
 ##
-MAKEFILE_VERSION := 1.10
+
 ## KPATH and CONFPATH are forwarded by the parent Makefile
-include $(CONFPATH)/config/Makefile.inc
+MAKEFILE_VERSION := 1.12
+include $(KPATH)/Makefile.kcommon
 
 ## List of all mxusb source files (both .c and .cpp)
 ## These files will end up in libmxusb.a
@@ -17,46 +18,14 @@ def_ctrl_pipe.cpp                                                          \
 shared_memory.cpp                                                          \
 usb_tracer.cpp
 
-ifeq ("$(VERBOSE)","1")
-Q := 
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
+CFLAGS   += -DMXUSB_LIBRARY
+CXXFLAGS += -DMXUSB_LIBRARY
 
-## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
-OBJ := $(addsuffix .o, $(basename $(SRC)))
-
-## Includes the miosix base directory for C/C++
-CXXFLAGS := $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC) \
-            -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)     \
-            -I$(KPATH)/$(BOARD_INC) -DMXUSB_LIBRARY
-CFLAGS   := $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC) \
-            -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)     \
-            -I$(KPATH)/$(BOARD_INC) -DMXUSB_LIBRARY
-AFLAGS   := $(AFLAGS_BASE)
-DFLAGS   := -MMD -MP
-
-## Build libmxusb.a
 all: $(OBJ)
 	$(ECHO) "[AR  ] libmxusb.a"
 	$(Q)$(AR) rcs libmxusb.a $(OBJ)
 
 clean:
-	rm $(OBJ) libmxusb.a $(OBJ:.o=.d)
+	-rm -f $(OBJ) $(OBJ:.o=.d) libmxusb.a
 
-%.o: %.s
-	$(ECHO) "[AS  ] $<"
-	$(Q)$(AS)  $(AFLAGS) $< -o $@
-
-%.o : %.c
-	$(ECHO) "[CC  ] $<"
-	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
-
-%.o : %.cpp
-	$(ECHO) "[CXX ] $<"
-	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
-
-#pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
