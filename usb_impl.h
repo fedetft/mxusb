@@ -101,7 +101,7 @@ public:
         using namespace miosix;
         if(waitIn==0) return;
         waitIn->IRQwakeup();
-        if(waitIn->getPriority()>Thread::IRQgetCurrentThread()->getPriority())
+        if(waitIn->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
                 Scheduler::IRQfindNextThread();
         waitIn=0;
         #endif //_MIOSIX
@@ -116,7 +116,7 @@ public:
         using namespace miosix;
         if(waitOut==0) return;
         waitOut->IRQwakeup();
-        if(waitOut->getPriority()>Thread::IRQgetCurrentThread()->getPriority())
+        if(waitOut->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
                 Scheduler::IRQfindNextThread();
         waitOut=0;
         #endif //_MIOSIX

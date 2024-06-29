@@ -192,9 +192,12 @@ void DeviceStateImpl::IRQsetState(USBdevice::State s)
     if(state==s) return; //No real state change
     state=s;
     #ifdef _MIOSIX
+    using namespace miosix;
     if(configWaiting!=0 && state==USBdevice::CONFIGURED)
     {
         configWaiting->IRQwakeup();
+        if(configWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+            Scheduler::IRQfindNextThread();
         configWaiting=0;
     }
     #endif //_MIOSIX
