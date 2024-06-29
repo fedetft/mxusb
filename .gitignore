@@ -1,4 +1,5 @@
 *.o
+*.d
 *.a
 _doc/html/*
 _examples/pc_side/build/*
