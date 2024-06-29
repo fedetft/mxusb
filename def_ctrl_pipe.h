@@ -115,8 +115,8 @@ public:
      */
     static void IRQstatusNak()
     {
-        USB->endpoint[0].IRQsetTxStatus(EndpointRegister::NAK);
-        USB->endpoint[0].IRQsetRxStatus(EndpointRegister::NAK);
+        USBREGS->endpoint[0].IRQsetTxStatus(EndpointRegister::NAK);
+        USBREGS->endpoint[0].IRQsetRxStatus(EndpointRegister::NAK);
         txUntouchedFlag=true;
         rxUntouchedFlag=true;
     }
@@ -178,14 +178,14 @@ private:
 
     /**
      * Code for endpoint 0 handling must call this function instead of
-     * USB->endpoint[0].setTxStatus(Endpoint::VALID), since this member function
+     * USBREGS->endpoint[0].setTxStatus(Endpoint::VALID), since this member function
      * clears the untouched flag on tx direction
      */
     static void IRQsetEp0TxValid();
 
     /**
      * Code for endpoint 0 handling must call this function instead of
-     * USB->endpoint[0].setRxStatus(Endpoint::VALID), since this member function
+     * USBREGS->endpoint[0].setRxStatus(Endpoint::VALID), since this member function
      * clears the untouched flag on rx direction
      */
     static void IRQsetEp0RxValid();

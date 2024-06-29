@@ -107,19 +107,19 @@ static void IRQhandleReset()
 {
     Tracer::IRQtrace(Ut::DEVICE_RESET);
 
-    USB->DADDR=0;  //Disable transaction handling
-    USB->ISTR=0;   //When the device is reset, clear all pending interrupts
-    USB->BTABLE=SharedMemory::BTABLE_ADDR; //Set BTABLE
+    USBREGS->DADDR=0;  //Disable transaction handling
+    USBREGS->ISTR=0;   //When the device is reset, clear all pending interrupts
+    USBREGS->BTABLE=SharedMemory::BTABLE_ADDR; //Set BTABLE
 
     for(int i=1;i<NUM_ENDPOINTS;i++) EndpointImpl::get(i)->IRQdeconfigure(i);
     SharedMemory::reset();
     DefCtrlPipe::IRQdefaultStatus();
 
     //After a reset device address is zero, enable transaction handling
-    USB->DADDR=0 | USB_DADDR_EF;
+    USBREGS->DADDR=0 | USB_DADDR_EF;
 
     //Enable more interrupt sources now that reset happened
-    USB->CNTR=USB_CNTR_CTRM | USB_CNTR_SUSPM | USB_CNTR_WKUPM | USB_CNTR_RESETM;
+    USBREGS->CNTR=USB_CNTR_CTRM | USB_CNTR_SUSPM | USB_CNTR_WKUPM | USB_CNTR_RESETM;
 
     //Device is now in the default address state
     DeviceStateImpl::IRQsetState(USBdevice::DEFAULT);
@@ -132,7 +132,7 @@ static void IRQhandleReset()
 void USBirqLpHandler() __attribute__ ((noinline));
 void USBirqLpHandler()
 {
-    unsigned short flags=USB->ISTR;
+    unsigned short flags=USBREGS->ISTR;
     Callbacks *callbacks=Callbacks::IRQgetCallbacks();
     if(flags & USB_ISTR_RESET)
     {
@@ -142,9 +142,9 @@ void USBirqLpHandler()
     }
     if(flags & USB_ISTR_SUSP)
     {
-        USB->ISTR= ~USB_ISTR_SUSP; //Clear interrupt flag
-        USB->CNTR|=USB_CNTR_FSUSP;
-        USB->CNTR|=USB_CNTR_LP_MODE;
+        USBREGS->ISTR= ~USB_ISTR_SUSP; //Clear interrupt flag
+        USBREGS->CNTR|=USB_CNTR_FSUSP;
+        USBREGS->CNTR|=USB_CNTR_LP_MODE;
         Tracer::IRQtrace(Ut::SUSPEND_REQUEST);
         DeviceStateImpl::IRQsetSuspended(true);
         //If device is configured, deconfigure all endpoints. This in turn will
@@ -155,8 +155,8 @@ void USBirqLpHandler()
     }
     if(flags & USB_ISTR_WKUP)
     {
-        USB->ISTR= ~USB_ISTR_WKUP; //Clear interrupt flag
-        USB->CNTR&= ~USB_CNTR_FSUSP;
+        USBREGS->ISTR= ~USB_ISTR_WKUP; //Clear interrupt flag
+        USBREGS->CNTR&= ~USB_CNTR_FSUSP;
         Tracer::IRQtrace(Ut::RESUME_REQUEST);
         DeviceStateImpl::IRQsetSuspended(false);
         callbacks->IRQresume();
@@ -168,7 +168,7 @@ void USBirqLpHandler()
     while(flags & USB_ISTR_CTR)
     {
         int epNum=flags & USB_ISTR_EP_ID;
-        unsigned short reg=USB->endpoint[epNum].get();
+        unsigned short reg=USBREGS->endpoint[epNum].get();
         if(epNum==0)
         {
             DefCtrlPipe::IRQstatusNak();
@@ -176,14 +176,14 @@ void USBirqLpHandler()
             if(reg & USB_EP0R_CTR_RX)
             {
                 bool isSetupPacket=reg & USB_EP0R_SETUP;
-                USB->endpoint[epNum].IRQclearRxInterruptFlag();
+                USBREGS->endpoint[epNum].IRQclearRxInterruptFlag();
                 if(isSetupPacket) DefCtrlPipe::IRQsetup();
                 else DefCtrlPipe::IRQout();
             }
 
             if(reg & USB_EP0R_CTR_TX)
             {
-                USB->endpoint[epNum].IRQclearTxInterruptFlag();
+                USBREGS->endpoint[epNum].IRQclearTxInterruptFlag();
                 DefCtrlPipe::IRQin();
             }
             DefCtrlPipe::IRQrestoreStatus();
@@ -193,7 +193,7 @@ void USBirqLpHandler()
             EndpointImpl *epi=EndpointImpl::IRQget(epNum);
             if(reg & USB_EP0R_CTR_RX)
             {
-                USB->endpoint[epNum].IRQclearRxInterruptFlag();
+                USBREGS->endpoint[epNum].IRQclearRxInterruptFlag();
                 //NOTE: Increment buffer before the callabck
                 epi->IRQincBufferCount();
                 callbacks->IRQendpoint(epNum,Endpoint::OUT);
@@ -202,7 +202,7 @@ void USBirqLpHandler()
 
             if(reg & USB_EP0R_CTR_TX)
             {
-                USB->endpoint[epNum].IRQclearTxInterruptFlag();
+                USBREGS->endpoint[epNum].IRQclearTxInterruptFlag();
 
                 //NOTE: Decrement buffer before the callabck
                 epi->IRQdecBufferCount();
@@ -212,7 +212,7 @@ void USBirqLpHandler()
         }
         //Read again the ISTR register so that if more endpoints have completed
         //a transaction, they are all serviced
-        flags=USB->ISTR;
+        flags=USBREGS->ISTR;
     }
 }
 
@@ -223,16 +223,16 @@ void USBirqLpHandler()
 void USBirqHpHandler() __attribute__ ((noinline));
 void USBirqHpHandler()
 {
-    unsigned short flags=USB->ISTR;
+    unsigned short flags=USBREGS->ISTR;
     Callbacks *callbacks=Callbacks::IRQgetCallbacks();
     while(flags & USB_ISTR_CTR)
     {
         int epNum=flags & USB_ISTR_EP_ID;
-        unsigned short reg=USB->endpoint[epNum].get();
+        unsigned short reg=USBREGS->endpoint[epNum].get();
         EndpointImpl *epi=EndpointImpl::IRQget(epNum);
         if(reg & USB_EP0R_CTR_RX)
         {
-            USB->endpoint[epNum].IRQclearRxInterruptFlag();
+            USBREGS->endpoint[epNum].IRQclearRxInterruptFlag();
             //NOTE: Increment buffer before the callabck
             epi->IRQincBufferCount();
             callbacks->IRQendpoint(epNum,Endpoint::OUT);
@@ -241,7 +241,7 @@ void USBirqHpHandler()
 
         if(reg & USB_EP0R_CTR_TX)
         {
-            USB->endpoint[epNum].IRQclearTxInterruptFlag();
+            USBREGS->endpoint[epNum].IRQclearTxInterruptFlag();
 
             //NOTE: Decrement buffer before the callabck
             epi->IRQdecBufferCount();
@@ -250,7 +250,7 @@ void USBirqHpHandler()
         }
         //Read again the ISTR register so that if more endpoints have completed
         //a transaction, they are all serviced
-        flags=USB->ISTR;
+        flags=USBREGS->ISTR;
     }
 }
 
@@ -381,7 +381,7 @@ bool Endpoint::IRQwrite(const unsigned char *data, int size, int& written)
 {
     written=0;
     if(pImpl->IRQgetData().enabledIn==0) return false;
-    EndpointRegister& epr=USB->endpoint[pImpl->IRQgetData().epNumber];
+    EndpointRegister& epr=USBREGS->endpoint[pImpl->IRQgetData().epNumber];
     EndpointRegister::Status stat=epr.IRQgetTxStatus();
     if(stat==EndpointRegister::STALL) return false;
 
@@ -442,7 +442,7 @@ bool Endpoint::IRQread(unsigned char *data, int& readBytes)
 {
     readBytes=0;
     if(pImpl->IRQgetData().enabledOut==0) return false;
-    EndpointRegister& epr=USB->endpoint[pImpl->IRQgetData().epNumber];
+    EndpointRegister& epr=USBREGS->endpoint[pImpl->IRQgetData().epNumber];
     EndpointRegister::Status stat=epr.IRQgetRxStatus();
     if(stat==EndpointRegister::STALL) return false;
 
@@ -553,13 +553,13 @@ bool USBdevice::enable(const unsigned char *device,
     //Connect pull-up to vcc
     USBgpio::enablePullup();
 
-    USB->CNTR=USB_CNTR_FRES; //Clear PDWN, leave FRES asserted
+    USBREGS->CNTR=USB_CNTR_FRES; //Clear PDWN, leave FRES asserted
     delayUs(1);  //Wait till USB analog circuitry stabilizes
-    USB->CNTR=0; //Clear FRES too, USB peripheral active
-    USB->ISTR=0; //Clear interrupt flags
+    USBREGS->CNTR=0; //Clear FRES too, USB peripheral active
+    USBREGS->ISTR=0; //Clear interrupt flags
     
     //First thing the host does is reset, so wait for that interrupt only
-    USB->CNTR=USB_CNTR_RESETM;
+    USBREGS->CNTR=USB_CNTR_RESETM;
     DeviceStateImpl::IRQsetState(USBdevice::DEFAULT);
 
     //Configure interrupts
@@ -588,9 +588,9 @@ void USBdevice::disable()
     USBgpio::disablePullup();
     for(int i=1;i<NUM_ENDPOINTS;i++) EndpointImpl::get(i)->IRQdeconfigure(i);
     SharedMemory::reset();
-    USB->DADDR=0;  //Clear EF bit
-    USB->CNTR=USB_CNTR_PDWN | USB_CNTR_FRES;
-    USB->ISTR=0; //Clear interrupt flags
+    USBREGS->DADDR=0;  //Clear EF bit
+    USBREGS->CNTR=USB_CNTR_PDWN | USB_CNTR_FRES;
+    USBREGS->ISTR=0; //Clear interrupt flags
     RCC->APB1ENR &= ~RCC_APB1ENR_USBEN;
     DeviceStateImpl::IRQsetState(USBdevice::DEFAULT);
     DeviceStateImpl::IRQsetConfiguration(0);

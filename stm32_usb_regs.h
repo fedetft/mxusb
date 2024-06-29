@@ -43,8 +43,10 @@ const int NUM_ENDPOINTS=8;
 
 /*
  * \internal
- * Can you believe it? stm32f10x.h despite being nearly 8000 lines long doesn't
- * have the memory layout for the USB peripheral...
+ * We're not using the structs provided by ST to define the USB peripheral
+ * memory layout because many years ago the stm32f10x.h didn't have them, and
+ * by the time they added them, we diverged and used a C++ class approach to
+ * represent endpoint registers.
  */
 struct USBmemoryLayout
 {
@@ -66,7 +68,7 @@ struct USBmemoryLayout
  * \internal
  * Pointer that maps the USBmemoryLayout to the peripheral address in memory
  */
-USBmemoryLayout* const USB=reinterpret_cast<USBmemoryLayout*>(0x40005c00);
+USBmemoryLayout* const USBREGS=reinterpret_cast<USBmemoryLayout*>(0x40005c00);
 
 } //namespace mxusb
 
