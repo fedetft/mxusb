@@ -142,7 +142,7 @@ void USBirqLpHandler()
     }
     if(flags & USB_ISTR_SUSP)
     {
-        USBREGS->ISTR= ~USB_ISTR_SUSP; //Clear interrupt flag
+        USBREGS->ISTR= ~(unsigned short)USB_ISTR_SUSP; //Clear interrupt flag
         USBREGS->CNTR|=USB_CNTR_FSUSP;
         USBREGS->CNTR|=USB_CNTR_LP_MODE;
         Tracer::IRQtrace(Ut::SUSPEND_REQUEST);
@@ -155,7 +155,7 @@ void USBirqLpHandler()
     }
     if(flags & USB_ISTR_WKUP)
     {
-        USBREGS->ISTR= ~USB_ISTR_WKUP; //Clear interrupt flag
+        USBREGS->ISTR= ~(unsigned short)USB_ISTR_WKUP; //Clear interrupt flag
         USBREGS->CNTR&= ~USB_CNTR_FSUSP;
         Tracer::IRQtrace(Ut::RESUME_REQUEST);
         DeviceStateImpl::IRQsetSuspended(false);
