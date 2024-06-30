@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,12 +30,14 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <sstream>
-#include <boost/date_time.hpp>
+#include <chrono>
+#include <thread>
+#include <functional>
 #include "libusbwrapper.h"
 
 using namespace std;
+using namespace std::chrono;
 using namespace libusb;
-using namespace boost::posix_time;
 
 /**
  * Test if the device is capable of accepting vendor requests
@@ -88,7 +90,7 @@ void testUsbDisconnect(Device& device, Context& context)
 	device.interruptTransfer(1 | Endpoint::OUT,disconnectRequest,1);
 	device.close();
 
-	sleep(1);
+	this_thread::sleep_for(1s);
 	bool failed=true;
 	try {
 		device.open(0xdead,0xbeef);
@@ -98,7 +100,7 @@ void testUsbDisconnect(Device& device, Context& context)
 	}
 	if(failed) throw(runtime_error("Device did not disconnect"));
 
-	sleep(2);
+	this_thread::sleep_for(2s);
 	device.open(0xdead,0xbeef);
 	if(device.getConfiguration()!=1) device.setConfiguration(1);
 	device.setTimeout(5000); //5s
@@ -150,7 +152,7 @@ void testBulkEndpoints(Device& device, Context& context)
 	{
 		for(int j=0;j<32;j++) out[j]=rand();
 		device.bulkTransfer(3 | Endpoint::OUT,out,32);
-		usleep(1000);
+		this_thread::sleep_for(1ms);
 		int readBytes=device.bulkTransfer(4 | Endpoint::IN,in,32);
 		if(readBytes!=32)
 		{
@@ -260,13 +262,13 @@ void testBulkInSpeed(Device& device, Context& context)
  * \param context USB context
  * \param numPackets optional, to have packet transfer statistics for BULK ep
  */
-void measureTime(void (*func)(Device&,Context&), Device& device,
+void measureTime(function<void (Device&,Context&)> func, Device& device,
 		Context& context, int numPackets=0)
 {
-	ptime t1(microsec_clock::local_time());
+	auto t1=steady_clock::now();
 	func(device,context);
-	ptime t2(microsec_clock::local_time());
-	float time=static_cast<float>((t2-t1).total_milliseconds())/1000;
+	auto t2=steady_clock::now();
+	float time=duration<float>(t2-t1).count();
 	cout<<" Time required="<<time<<"s"<<endl;
 	if(numPackets==0) return;
 	cout<<" Average packets per frame="<<(numPackets/1000)/time<<endl;
@@ -286,7 +288,7 @@ int main()
 		measureTime(testInterruptEndpoints,device,context);
 		device.setConfiguration(2);
 		device.claimInterface(0);
-		usleep(10000);
+		this_thread::sleep_for(10ms);
 		measureTime(testBulkEndpoints,device,context);
 		measureTime(testBulkOutSpeed,device,context,19000);
 		measureTime(testBulkInSpeed,device,context,19000);
