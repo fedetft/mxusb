@@ -150,6 +150,7 @@ void testBulkEndpoints(Device& device, Context& context)
 	{
 		for(int j=0;j<32;j++) out[j]=rand();
 		device.bulkTransfer(3 | Endpoint::OUT,out,32);
+		usleep(1000);
 		int readBytes=device.bulkTransfer(4 | Endpoint::IN,in,32);
 		if(readBytes!=32)
 		{
